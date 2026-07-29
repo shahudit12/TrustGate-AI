@@ -1,0 +1,100 @@
+/**
+ * TrustGate AI — Design System Token Registry
+ *
+ * Core enterprise theme system with light/dark theme selectors,
+ * grid layout presets, and elevation tokens.
+ */
+
+:root, [data-theme="dark"] {
+  /* Surface Levels */
+  --surface-0: #070D19; /* Base matte dark background */
+  --surface-1: #0F172A; /* Primary container surface */
+  --surface-2: #162032; /* Elevated panel surface */
+  --surface-3: #243447; /* Card / Dialog surface */
+
+  /* Palette */
+  --azure-600: #0078D4;
+  --azure-500: #106EBE;
+  --azure-400: #2899F5;
+  --trust-green: #00B294;
+  --electric-cyan: #00BCF2;
+  
+  /* Status Colors */
+  --status-emerald: #10B981;
+  --status-amber: #F59E0B;
+  --status-crimson: #EF4444;
+
+  /* Borders & Dividers */
+  --border-subtle: rgba(255, 255, 255, 0.08);
+  --border-default: rgba(51, 65, 85, 0.7);
+  --border-glow-azure: rgba(0, 120, 212, 0.4);
+  --border-glow-trust: rgba(0, 178, 148, 0.4);
+
+  /* Elevations & Glows */
+  --shadow-azure-glow: 0 0 25px rgba(0, 120, 212, 0.25);
+  --shadow-trust-glow: 0 0 25px rgba(0, 178, 148, 0.25);
+  --shadow-card-hover: 0 12px 32px rgba(0, 0, 0, 0.5);
+
+  /* Radius System */
+  --radius-xs: 0.25rem;
+  --radius-sm: 0.5rem;
+  --radius-md: 0.75rem;
+  --radius-lg: 1rem;
+  --radius-xl: 1.5rem;
+  --radius-full: 9999px;
+}
+
+[data-theme="light"] {
+  --surface-0: #F8FAFC;
+  --surface-1: #FFFFFF;
+  --surface-2: #F1F5F9;
+  --surface-3: #E2E8F0;
+
+  --border-subtle: rgba(0, 0, 0, 0.08);
+  --border-default: rgba(203, 213, 225, 0.9);
+}
+
+/* Surface Utility Classes */
+.bg-surface-0 { background-color: var(--surface-0); }
+.bg-surface-1 { background-color: var(--surface-1); }
+.bg-surface-2 { background-color: var(--surface-2); }
+.bg-surface-3 { background-color: var(--surface-3); }
+
+/* Focus Ring Utility */
+.focus-ring {
+  @apply focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0078D4] focus-visible:ring-offset-2 focus-visible:ring-offset-[#070D19];
+}
+
+/* Shimmer Skeleton Class */
+.skeleton-shimmer {
+  background: linear-gradient(
+    90deg,
+    rgba(30, 41, 59, 0.6) 0%,
+    rgba(51, 65, 85, 0.8) 50%,
+    rgba(30, 41, 59, 0.6) 100%
+  );
+  background-size: 200% 100%;
+  animation: skeleton-pulse 1.8s ease-in-out infinite;
+}
+
+/* Enterprise Grid System */
+.grid-hero {
+  @apply grid grid-cols-1 lg:grid-cols-12 gap-8 items-center;
+}
+
+.grid-cards {
+  @apply grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6;
+}
+
+.grid-metrics {
+  @apply grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5;
+}
+
+.grid-dashboard {
+  @apply grid grid-cols-1 lg:grid-cols-3 gap-6;
+}
+
+@keyframes skeleton-pulse {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}

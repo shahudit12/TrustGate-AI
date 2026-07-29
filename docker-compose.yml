@@ -1,0 +1,74 @@
+version: '3.9'
+
+services:
+  # ─────────────────────────────────────────────
+  # Frontend Development Server
+  # ─────────────────────────────────────────────
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      target: development
+    container_name: trustgate-frontend
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./frontend/src:/app/src
+      - ./frontend/public:/app/public
+      - /app/node_modules
+    environment:
+      - VITE_API_URL=http://localhost:8000
+      - VITE_WS_URL=ws://localhost:8000
+      - VITE_DEMO_MODE=true
+    depends_on:
+      - backend
+    networks:
+      - trustgate-net
+
+  # ─────────────────────────────────────────────
+  # Backend API Server
+  # ─────────────────────────────────────────────
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+      target: development
+    container_name: trustgate-backend
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./backend/app:/app/app
+      - ./backend/tests:/app/tests
+      - trustgate-models:/root/.cache/mediapipe
+    environment:
+      - APP_ENV=development
+      - DEBUG=true
+      - DEMO_MODE=true
+      - SECRET_KEY=dev-secret-key-change-in-production-32chars
+      - JWT_SECRET=dev-jwt-secret-change-in-production-32chars
+      - ALLOWED_ORIGINS=http://localhost:3000,http://127.0.0.1:3000
+      # Azure services (optional in demo mode)
+      - AZURE_OPENAI_ENDPOINT=${AZURE_OPENAI_ENDPOINT:-}
+      - AZURE_OPENAI_API_KEY=${AZURE_OPENAI_API_KEY:-}
+      - AZURE_OPENAI_DEPLOYMENT=${AZURE_OPENAI_DEPLOYMENT:-gpt-4o}
+      - AZURE_OPENAI_API_VERSION=${AZURE_OPENAI_API_VERSION:-2024-02-01}
+      - COSMOS_DB_URL=${COSMOS_DB_URL:-}
+      - COSMOS_DB_KEY=${COSMOS_DB_KEY:-}
+      - COSMOS_DB_DATABASE=${COSMOS_DB_DATABASE:-trustgate}
+      - AZURE_STORAGE_CONNECTION_STRING=${AZURE_STORAGE_CONNECTION_STRING:-}
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+    networks:
+      - trustgate-net
+
+networks:
+  trustgate-net:
+    driver: bridge
+
+volumes:
+  trustgate-models:
+    driver: local

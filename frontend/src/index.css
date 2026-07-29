@@ -1,0 +1,376 @@
+/**
+ * TrustGate AI — Global Styles
+ *
+ * Design system foundation:
+ * - Google Fonts import (Inter + JetBrains Mono)
+ * - CSS custom properties (design tokens)
+ * - Base element styles
+ * - Utility classes (glass, gradient-text, trust-ring)
+ * - Custom scrollbar
+ * - Animation keyframes
+ */
+
+@import './styles/tokens.css';
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600&display=swap');
+
+/* ── Tailwind Directives ──────────────────────────────────────────────────── */
+@import "tailwindcss";
+@config "../tailwind.config.js";
+
+/* ── CSS Custom Properties (Design Tokens) ───────────────────────────────── */
+:root {
+  /* Brand colors */
+  --color-azure:       #0078D4;
+  --color-azure-light: #106EBE;
+  --color-azure-cyan:  #00BCF2;
+  --color-trust-green: #00B294;
+  --color-trust-teal:  #00BCF2;
+  --color-warning:     #F59E0B;
+  --color-danger:      #EF4444;
+
+  /* Surfaces */
+  --color-surface:     #0F172A;
+  --color-panel:       #1E293B;
+  --color-card:        #243447;
+  --color-border:      #334155;
+
+  /* Text */
+  --color-text-primary:   #F1F5F9;
+  --color-text-secondary: #CBD5E1;
+  --color-text-muted:     #94A3B8;
+
+  /* Shadows */
+  --shadow-azure: 0 0 20px rgba(0, 120, 212, 0.4);
+  --shadow-trust: 0 0 20px rgba(0, 178, 148, 0.4);
+  --shadow-panel: 0 4px 24px rgba(0, 0, 0, 0.4);
+
+  /* Timing */
+  --transition-fast:   150ms ease;
+  --transition-normal: 250ms ease;
+  --transition-slow:   400ms ease;
+}
+
+/* ── Base Styles ──────────────────────────────────────────────────────────── */
+@layer base {
+  *, *::before, *::after {
+    box-sizing: border-box;
+  }
+
+  html {
+    color-scheme: dark;
+    scroll-behavior: smooth;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+  }
+
+  body {
+    @apply bg-surface text-text-primary font-sans;
+    margin: 0;
+    padding: 0;
+    overflow-x: hidden;
+  }
+
+  /* Headings */
+  h1, h2, h3, h4, h5, h6 {
+    @apply font-sans font-semibold tracking-tight;
+    line-height: 1.2;
+  }
+
+  /* Links */
+  a {
+    @apply text-azure-600 transition-colors duration-200;
+    text-decoration: none;
+  }
+
+  a:hover {
+    @apply text-azure-400;
+  }
+
+  /* Focus styles (accessibility) */
+  :focus-visible {
+    outline: 2px solid var(--color-azure);
+    outline-offset: 2px;
+    border-radius: 4px;
+  }
+
+  /* Selection */
+  ::selection {
+    background-color: rgba(0, 120, 212, 0.3);
+    color: #F1F5F9;
+  }
+
+  /* Code */
+  code, pre, .font-mono {
+    font-family: 'JetBrains Mono', 'Fira Code', Consolas, monospace;
+  }
+
+  /* Image defaults */
+  img, video {
+    max-width: 100%;
+    display: block;
+  }
+
+  /* Input base styles */
+  input, textarea, select {
+    @apply bg-surface-panel border border-surface-border rounded-lg px-4 py-2.5 text-text-primary placeholder-text-muted;
+    @apply focus:outline-none focus:ring-2 focus:ring-azure-600 focus:border-transparent;
+    @apply transition-all duration-200;
+    font-family: inherit;
+  }
+}
+
+/* ── Component Utilities ──────────────────────────────────────────────────── */
+@layer components {
+  /**
+   * Glass morphism panel
+   * Used for cards, modals, overlays
+   */
+  .glass {
+    background: rgba(30, 41, 59, 0.7);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid rgba(51, 65, 85, 0.8);
+  }
+
+  /**
+   * Stronger glass for overlays
+   */
+  .glass-strong {
+    background: rgba(15, 23, 42, 0.85);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border: 1px solid rgba(51, 65, 85, 0.6);
+  }
+
+  /**
+   * Gradient text (Azure blue → Cyan)
+   * Used for brand headings and highlights
+   */
+  .gradient-text {
+    background: linear-gradient(135deg, #0078D4 0%, #00BCF2 60%, #00B294 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  /**
+   * Danger gradient text
+   */
+  .gradient-text-danger {
+    background: linear-gradient(135deg, #EF4444 0%, #991B1B 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  /**
+   * Trust ring — animated pulsing ring for trust score display
+   */
+  .trust-ring {
+    position: relative;
+  }
+
+  .trust-ring::before {
+    content: '';
+    position: absolute;
+    inset: -4px;
+    border-radius: inherit;
+    border: 2px solid rgba(0, 178, 148, 0.5);
+    animation: trust-ring-pulse 2s ease-in-out infinite;
+  }
+
+  /**
+   * Azure glow border
+   */
+  .border-glow-azure {
+    border: 1px solid rgba(0, 120, 212, 0.5);
+    box-shadow: 0 0 12px rgba(0, 120, 212, 0.2), inset 0 0 12px rgba(0, 120, 212, 0.05);
+  }
+
+  /**
+   * Trust green glow border
+   */
+  .border-glow-trust {
+    border: 1px solid rgba(0, 178, 148, 0.5);
+    box-shadow: 0 0 12px rgba(0, 178, 148, 0.2), inset 0 0 12px rgba(0, 178, 148, 0.05);
+  }
+
+  /**
+   * Danger red glow border
+   */
+  .border-glow-danger {
+    border: 1px solid rgba(239, 68, 68, 0.5);
+    box-shadow: 0 0 12px rgba(239, 68, 68, 0.2), inset 0 0 12px rgba(239, 68, 68, 0.05);
+  }
+
+  /**
+   * Webcam container with scan line effect
+   */
+  .webcam-container {
+    position: relative;
+    overflow: hidden;
+    border-radius: 12px;
+  }
+
+  .webcam-container::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 2px;
+    background: linear-gradient(90deg, transparent, rgba(0, 120, 212, 0.8), transparent);
+    animation: scan-line 3s ease-in-out infinite;
+  }
+
+  /**
+   * Corner brackets — for face detection overlay aesthetic
+   */
+  .corner-bracket {
+    position: absolute;
+    width: 20px;
+    height: 20px;
+    border-color: #0078D4;
+    border-style: solid;
+  }
+
+  .corner-bracket-tl { top: 0; left: 0; border-width: 2px 0 0 2px; border-radius: 2px 0 0 0; }
+  .corner-bracket-tr { top: 0; right: 0; border-width: 2px 2px 0 0; border-radius: 0 2px 0 0; }
+  .corner-bracket-bl { bottom: 0; left: 0; border-width: 0 0 2px 2px; border-radius: 0 0 0 2px; }
+  .corner-bracket-br { bottom: 0; right: 0; border-width: 0 2px 2px 0; border-radius: 0 0 2px 0; }
+
+  /**
+   * Background mesh gradient
+   */
+  .bg-mesh {
+    background-image:
+      radial-gradient(at 40% 20%, hsla(228, 100%, 20%, 0.3) 0px, transparent 50%),
+      radial-gradient(at 80% 0%, hsla(189, 100%, 15%, 0.2) 0px, transparent 50%),
+      radial-gradient(at 0% 50%, hsla(210, 100%, 10%, 0.15) 0px, transparent 50%),
+      radial-gradient(at 80% 50%, hsla(160, 100%, 10%, 0.1) 0px, transparent 50%);
+  }
+
+  /**
+   * Trust score pill
+   */
+  .trust-score-pill {
+    @apply inline-flex items-center gap-2 px-4 py-2 rounded-full font-semibold text-sm;
+  }
+
+  /**
+   * Stat counter
+   */
+  .stat-value {
+    @apply text-4xl font-bold text-text-primary tabular-nums;
+    font-variant-numeric: tabular-nums;
+  }
+
+  /**
+   * Timeline connector line
+   */
+  .timeline-connector {
+    @apply absolute left-4 top-8 bottom-0 w-px bg-gradient-to-b from-surface-border to-transparent;
+  }
+}
+
+/* ── Custom Scrollbar ─────────────────────────────────────────────────────── */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(51, 65, 85, 0.8);
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(71, 85, 105, 0.9);
+}
+
+/* Firefox */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(51, 65, 85, 0.8) transparent;
+}
+
+/* ── Animation Keyframes ──────────────────────────────────────────────────── */
+@keyframes trust-ring-pulse {
+  0%, 100% {
+    opacity: 0.4;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.8;
+    transform: scale(1.02);
+  }
+}
+
+@keyframes scan-line {
+  0% {
+    top: -2px;
+    opacity: 0;
+  }
+  10% {
+    opacity: 0.8;
+  }
+  90% {
+    opacity: 0.6;
+  }
+  100% {
+    top: 100%;
+    opacity: 0;
+  }
+}
+
+@keyframes float {
+  0%, 100% { transform: translateY(0px); }
+  50% { transform: translateY(-8px); }
+}
+
+@keyframes shimmer {
+  0% { background-position: -200% center; }
+  100% { background-position: 200% center; }
+}
+
+@keyframes count-up {
+  from { opacity: 0; transform: translateY(10px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes particle-float {
+  0%   { transform: translateY(0) rotate(0deg); opacity: 1; }
+  100% { transform: translateY(-100vh) rotate(720deg); opacity: 0; }
+}
+
+/* ── Utility Animations ───────────────────────────────────────────────────── */
+.animate-float {
+  animation: float 3s ease-in-out infinite;
+}
+
+.animate-shimmer {
+  background: linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.05) 50%, transparent 100%);
+  background-size: 200% auto;
+  animation: shimmer 2s linear infinite;
+}
+
+/* ── Print Styles (for PDF preview) ──────────────────────────────────────── */
+@media print {
+  .no-print { display: none !important; }
+  body { background: white !important; color: black !important; }
+  .glass { background: white !important; border: 1px solid #e2e8f0 !important; }
+}
+
+/* ── Reduced Motion ───────────────────────────────────────────────────────── */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}

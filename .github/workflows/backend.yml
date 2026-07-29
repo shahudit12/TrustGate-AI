@@ -1,0 +1,163 @@
+name: TrustGate AI — Backend CI/CD
+on:
+  push:
+    branches: [main, staging]
+    paths:
+      - 'backend/**'
+      - '.github/workflows/backend.yml'
+  pull_request:
+    branches: [main]
+    paths:
+      - 'backend/**'
+
+env:
+  PYTHON_VERSION: '3.11'
+  REGISTRY: trustgatecr.azurecr.io
+  IMAGE_NAME: trustgate-backend
+
+jobs:
+  # ─────────────────────────────────────────────
+  # Test
+  # ─────────────────────────────────────────────
+  test:
+    name: Test Backend
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ./backend
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: 'pip'
+
+      - name: Install system dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libgl1-mesa-glx libglib2.0-0 ffmpeg
+
+      - name: Install Python dependencies
+        run: |
+          pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install pytest pytest-asyncio httpx pytest-cov
+
+      - name: Run unit tests
+        env:
+          DEMO_MODE: 'true'
+          APP_ENV: 'test'
+          SECRET_KEY: 'test-secret-key-32-chars-minimum-!!'
+          JWT_SECRET: 'test-jwt-secret-32-chars-minimum--!!'
+        run: |
+          pytest tests/unit/ -v --cov=app --cov-report=xml --cov-report=term-missing
+
+      - name: Run integration tests
+        env:
+          DEMO_MODE: 'true'
+          APP_ENV: 'test'
+          SECRET_KEY: 'test-secret-key-32-chars-minimum-!!'
+          JWT_SECRET: 'test-jwt-secret-32-chars-minimum--!!'
+        run: |
+          pytest tests/integration/ -v
+
+      - name: Upload coverage report
+        uses: codecov/codecov-action@v4
+        with:
+          file: ./backend/coverage.xml
+          flags: backend
+
+  # ─────────────────────────────────────────────
+  # Build Docker Image
+  # ─────────────────────────────────────────────
+  build:
+    name: Build Docker Image
+    needs: test
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push'
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Azure Login
+        uses: azure/login@v2
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
+
+      - name: Login to Azure Container Registry
+        run: az acr login --name trustgatecr
+
+      - name: Set image tags
+        id: tags
+        run: |
+          SHA_TAG=${{ github.sha }}
+          echo "sha_tag=${SHA_TAG:0:8}" >> $GITHUB_OUTPUT
+          echo "branch_tag=${GITHUB_REF_NAME}" >> $GITHUB_OUTPUT
+
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v5
+        with:
+          context: ./backend
+          target: production
+          push: true
+          tags: |
+            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ steps.tags.outputs.sha_tag }}
+            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ steps.tags.outputs.branch_tag }}
+            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest
+
+  # ─────────────────────────────────────────────
+  # Deploy to Azure Container Apps
+  # ─────────────────────────────────────────────
+  deploy-staging:
+    name: Deploy to Staging
+    needs: build
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/staging'
+    environment: staging
+
+    steps:
+      - name: Azure Login
+        uses: azure/login@v2
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
+
+      - name: Deploy to Container Apps (Staging)
+        run: |
+          az containerapp update \
+            --name trustgate-staging-backend \
+            --resource-group trustgate-staging-rg \
+            --image ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.sha }}
+
+  deploy-production:
+    name: Deploy to Production
+    needs: build
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main'
+    environment: production
+
+    steps:
+      - name: Azure Login
+        uses: azure/login@v2
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
+
+      - name: Deploy to Container Apps (Production)
+        run: |
+          az containerapp update \
+            --name trustgate-prod-backend \
+            --resource-group trustgate-prod-rg \
+            --image ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.sha }}
+
+      - name: Wait for deployment health
+        run: |
+          sleep 30
+          STATUS=$(az containerapp show \
+            --name trustgate-prod-backend \
+            --resource-group trustgate-prod-rg \
+            --query "properties.latestRevisionFqdn" -o tsv)
+          curl -f https://$STATUS/health || exit 1
