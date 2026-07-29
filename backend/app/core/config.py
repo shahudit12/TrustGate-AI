@@ -32,11 +32,17 @@ class Settings(BaseSettings):
     AZURE_SPEECH_KEY: str = ""
     AZURE_SPEECH_REGION: str = "eastus2"
 
-    # Azure OpenAI
+    # Azure OpenAI & Azure AI Foundry (GPT-5 Mini)
     AZURE_OPENAI_ENDPOINT: str = "https://demo.openai.azure.com/"
     AZURE_OPENAI_KEY: str = ""
-    AZURE_OPENAI_DEPLOYMENT: str = "gpt-4o"
-    AZURE_OPENAI_API_VERSION: str = "2024-02-01"
+    AZURE_OPENAI_DEPLOYMENT: str = "gpt-5-mini"
+    AZURE_OPENAI_API_VERSION: str = "2025-04-01-preview"
+    AZURE_OPENAI_MAX_RETRIES: int = 3
+    AZURE_OPENAI_TIMEOUT_SECONDS: float = 30.0
+    AZURE_OPENAI_TEMPERATURE: float = 0.2
+    AZURE_OPENAI_MAX_TOKENS: int = 400
+    AZURE_OPENAI_CIRCUIT_BREAKER_FAILURES: int = 5
+    AZURE_OPENAI_CIRCUIT_BREAKER_RESET_SECONDS: float = 60.0
 
     # Azure Cosmos DB
     AZURE_COSMOS_CONNECTION_STRING: str = ""
@@ -61,4 +67,3 @@ class Settings(BaseSettings):
 
 
 settings = Settings()
-

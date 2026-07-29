@@ -15,6 +15,7 @@ from app.core.exceptions import (
     generic_exception_handler,
 )
 from app.api.v1.router import api_router
+from app.services.azure_openai_service import azure_openai_service
 
 # Setup centralized logging
 setup_logging()
@@ -26,6 +27,11 @@ async def lifespan(app: FastAPI):
     Application lifespan manager handling startup and shutdown events.
     """
     logger.info(f"Starting {settings.PROJECT_NAME} v{settings.VERSION}...")
+    logger.info(
+        "Azure OpenAI Status | Enabled=%s | Deployment=%s",
+        azure_openai_service.enabled,
+        azure_openai_service.deployment,
+    )
     yield
     logger.info(f"Shutting down {settings.PROJECT_NAME}...")
 
