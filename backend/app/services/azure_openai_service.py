@@ -1,5 +1,5 @@
 """
-TrustGate AI — Azure AI Foundry & OpenAI GPT-5 Mini Service Engine (v2.5)
+TrustGate AI — Azure AI Foundry & OpenAI GPT-5 Mini Service Engine (v2.6)
 
 Production-Grade AI Engine optimized for Azure AI Foundry deployments of GPT-5 Mini
 (Deployment: gpt-5-mini, API Version: 2025-04-01-preview).
@@ -7,8 +7,9 @@ Production-Grade AI Engine optimized for Azure AI Foundry deployments of GPT-5 M
 Architectural Highlights & Innovations:
 - Primary Integration via Azure AI Foundry Responses API (/openai/v1/responses)
   with preserved System Instructions & Structured Input payload context.
+- Robust endpoint URL normalization (strips redundant path segments like /openai/v1).
 - Embedded Circuit Breaker pattern preventing cascade failures during cloud outages.
-- Exponential backoff retries handling Rate Limits, Connection Drops, Timeouts, and 5xx Server Errors.
+- Corrected exponential backoff retry loop with proper exception re-raising.
 - Real-time Latency Metrics (ms) and Token Consumption Telemetry logging.
 - Sanitized Endpoint logging and environment-driven hyper-parameters (Temperature, Max Tokens).
 - Async streaming generator support for high-throughput AI Copilot interactions.
@@ -101,8 +102,16 @@ class AzureOpenAIService:
         self.temperature: float = getattr(settings, "AZURE_OPENAI_TEMPERATURE", 0.2)
         self.max_tokens: int = getattr(settings, "AZURE_OPENAI_MAX_TOKENS", 400)
 
+        # Normalize endpoint URL so AsyncAzureOpenAI does not double-append path segments
+        raw_endpoint = (self.endpoint or "").rstrip("/")
+        if raw_endpoint.endswith("/openai/v1"):
+            raw_endpoint = raw_endpoint[:-10]
+        elif raw_endpoint.endswith("/openai"):
+            raw_endpoint = raw_endpoint[:-7]
+        self.clean_endpoint = raw_endpoint.rstrip("/")
+
         # Robust configuration check (Endpoint, Key, and Deployment must be set)
-        self.enabled: bool = bool(self.key and self.endpoint and self.deployment)
+        self.enabled: bool = bool(self.key and self.clean_endpoint and self.deployment)
 
         self.client: Optional[AsyncAzureOpenAI] = None
         self.circuit_breaker = CircuitBreaker(
@@ -113,15 +122,15 @@ class AzureOpenAIService:
         if self.enabled and AsyncAzureOpenAI is not None:
             try:
                 self.client = AsyncAzureOpenAI(
-                    azure_endpoint=self.endpoint,
+                    azure_endpoint=self.clean_endpoint,
                     api_key=self.key,
                     api_version=self.api_version,
                     timeout=self.timeout,
-                    max_retries=self.max_retries,
+                    max_retries=1,  # We manage retries via execute_with_retry for fine-grained circuit breaking
                 )
                 logger.info(
                     "AsyncAzureOpenAI Client initialized for Azure AI Foundry. "
-                    f"[Endpoint: {self._sanitize_endpoint(self.endpoint)} | Deployment: {self.deployment} | API Version: {self.api_version}]"
+                    f"[Endpoint: {self._sanitize_endpoint(self.clean_endpoint)} | Deployment: {self.deployment} | API Version: {self.api_version}]"
                 )
             except Exception as exc:
                 logger.error(
@@ -168,6 +177,8 @@ class AzureOpenAIService:
         Retries on Rate Limits, Connection Drops, Timeouts, and 5xx Server Errors.
         """
         delay = 1.0
+        last_exc: Optional[Exception] = None
+
         for attempt in range(1, self.max_retries + 1):
             try:
                 start_time = time.perf_counter()
@@ -178,16 +189,19 @@ class AzureOpenAIService:
                 return result
 
             except RateLimitError as exc:
+                last_exc = exc
                 logger.warning(
                     f"[{trace_id}] Azure AI Foundry Rate Limit (Attempt {attempt}/{self.max_retries}): {exc}. "
                     f"Retrying in {delay:.1f}s..."
                 )
             except (APIConnectionError, APITimeoutError) as exc:
+                last_exc = exc
                 logger.warning(
                     f"[{trace_id}] Azure AI Foundry Connection/Timeout Error (Attempt {attempt}/{self.max_retries}): {exc}. "
                     f"Retrying in {delay:.1f}s..."
                 )
             except APIError as exc:
+                last_exc = exc
                 status_code = getattr(exc, "status_code", 500)
                 if status_code >= 500:
                     logger.warning(
@@ -198,12 +212,13 @@ class AzureOpenAIService:
                     self.circuit_breaker.record_failure()
                     raise
 
-            if attempt == self.max_retries:
-                self.circuit_breaker.record_failure()
-                raise
+            if attempt < self.max_retries:
+                await asyncio.sleep(delay)
+                delay *= 2.0
 
-            await asyncio.sleep(delay)
-            delay *= 2.0
+        self.circuit_breaker.record_failure()
+        if last_exc:
+            raise last_exc
 
     async def generate_explainability_reasoning(
         self,
@@ -287,8 +302,8 @@ class AzureOpenAIService:
                 logger.error(f"[{trace_id}] Azure OpenAI Authentication Error ({exc}). Verify AZURE_OPENAI_KEY.")
             except RateLimitError as exc:
                 logger.warning(f"[{trace_id}] Azure OpenAI Rate Limit Exceeded ({exc}).")
-            except APIConnectionError as exc:
-                logger.warning(f"[{trace_id}] Azure OpenAI Connection Error ({exc}).")
+            except (APIConnectionError, APITimeoutError) as exc:
+                logger.warning(f"[{trace_id}] Azure OpenAI Connection/Timeout Error ({exc}).")
             except APIError as exc:
                 logger.error(f"[{trace_id}] Azure OpenAI API Error ({exc}). Deployment '{self.deployment}'.")
             except OpenAIError as exc:
