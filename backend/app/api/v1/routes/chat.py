@@ -6,7 +6,7 @@ from app.models.schemas.api import StatusResponse, ChatMessageRequest, ChatMessa
 
 from app.services.azure_openai_service import azure_openai_service
 
-router = APIRouter(prefix="/chat", tags=["Chat"], dependencies=[Depends(verify_api_key)])
+router = APIRouter(tags=["Chat"], dependencies=[Depends(verify_api_key)])
 
 
 @router.get(

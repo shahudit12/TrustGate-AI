@@ -3,7 +3,7 @@ from app.core.security import verify_api_key
 from app.core.exceptions import ErrorResponse
 from app.models.schemas.api import StatusResponse, DashboardStatsResponse, TelemetryResponse
 
-router = APIRouter(prefix="/dashboard", tags=["Dashboard"], dependencies=[Depends(verify_api_key)])
+router = APIRouter(tags=["Dashboard"], dependencies=[Depends(verify_api_key)])
 
 
 @router.get(
